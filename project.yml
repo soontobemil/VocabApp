@@ -1,0 +1,47 @@
+name: VocabApp
+options:
+  bundleIdPrefix: com.jaysim
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  VocabApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: VocabApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jaysim.VocabApp
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.reference
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        CODE_SIGN_ENTITLEMENTS: VocabApp/VocabApp.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_VERSION: "5.10"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+  VocabAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: VocabAppTests
+    dependencies:
+      - target: VocabApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.jaysim.VocabAppTests
+        BUNDLE_LOADER: $(TEST_HOST)
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/VocabApp.app/Contents/MacOS/VocabApp
