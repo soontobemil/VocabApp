@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,6 +11,11 @@ struct ContentView: View {
     @State private var filter: EntryFilter = .due
     @State private var isAddingWord: Bool = false
     @State private var hasPickedInitialRandom: Bool = false
+    @State private var selectedBookTitle: String = SidebarView.allBooksTitle
+    @State private var isExporting: Bool = false
+    @State private var isImporting: Bool = false
+    @State private var exportDocument = VocabExportDocument()
+    @State private var importErrorMessage: String?
 
     private var dueEntries: [VocabEntry] {
         entries.filter { $0.isDue() }
@@ -26,16 +32,25 @@ struct ContentView: View {
         }.count
     }
 
+    private var newTodayCount: Int {
+        entries.filter { Calendar.current.isDateInToday($0.createdAt) }.count
+    }
+
+    private var bookTitles: [String] {
+        Array(Set(entries.compactMap { clean($0.bookTitle) })).sorted()
+    }
+
     private var filteredEntries: [VocabEntry] {
+        let deckEntries = entriesForSelectedBook
         let scopedEntries: [VocabEntry] = switch filter {
         case .all:
-            entries
+            deckEntries
         case .due:
-            dueEntries
+            deckEntries.filter { $0.isDue() }
         case .favorites:
-            entries.filter(\.isFavorite)
+            deckEntries.filter(\.isFavorite)
         case .korean:
-            entries.filter { $0.language == .ko }
+            deckEntries.filter { $0.language == .ko }
         }
 
         guard !searchText.isEmpty else { return scopedEntries }
@@ -47,6 +62,11 @@ struct ContentView: View {
                 || (entry.sentence ?? "").lowercased().contains(needle)
                 || (entry.bookTitle ?? "").lowercased().contains(needle)
         }
+    }
+
+    private var entriesForSelectedBook: [VocabEntry] {
+        guard selectedBookTitle != SidebarView.allBooksTitle else { return entries }
+        return entries.filter { clean($0.bookTitle) == selectedBookTitle }
     }
 
     private var selectedEntry: VocabEntry? {
@@ -62,9 +82,12 @@ struct ContentView: View {
                 dueCount: dueEntries.count,
                 favoriteCount: favoriteEntries.count,
                 reviewedTodayCount: reviewedTodayCount,
+                newTodayCount: newTodayCount,
+                bookTitles: bookTitles,
                 selection: $selectedEntryID,
                 searchText: $searchText,
-                filter: $filter
+                filter: $filter,
+                selectedBookTitle: $selectedBookTitle
             )
         } detail: {
             Group {
@@ -87,6 +110,25 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        exportDocument = VocabExportDocument(entries: entries.map(VocabEntrySnapshot.init))
+                        isExporting = true
+                    } label: {
+                        Label("Export Library", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(entries.isEmpty)
+
+                    Button {
+                        isImporting = true
+                    } label: {
+                        Label("Import Library", systemImage: "square.and.arrow.down")
+                    }
+                } label: {
+                    Label("Library", systemImage: "tray.full")
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button(action: selectReviewCandidate) {
                     Label("Review", systemImage: "checkmark.circle")
                 }
@@ -103,7 +145,31 @@ struct ContentView: View {
             AddWordSheet { entry in
                 selectedEntryID = entry.persistentModelID
                 filter = .all
+                if let bookTitle = clean(entry.bookTitle) {
+                    selectedBookTitle = bookTitle
+                }
             }
+        }
+        .fileExporter(
+            isPresented: $isExporting,
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: "vocabapp-export"
+        ) { result in
+            if case .failure(let error) = result {
+                importErrorMessage = error.localizedDescription
+            }
+        }
+        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
+            importEntries(from: result)
+        }
+        .alert("Library Import/Export Failed", isPresented: Binding(
+            get: { importErrorMessage != nil },
+            set: { if !$0 { importErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { importErrorMessage = nil }
+        } message: {
+            Text(importErrorMessage ?? "")
         }
         .onAppear {
             if !hasPickedInitialRandom, let random = entries.randomElement() {
@@ -119,12 +185,60 @@ struct ContentView: View {
                 return
             }
         }
+        .onChange(of: selectedBookTitle) { _, _ in
+            guard let selectedEntryID,
+                  filteredEntries.contains(where: { $0.persistentModelID == selectedEntryID })
+            else {
+                selectedEntryID = filteredEntries.first?.persistentModelID
+                return
+            }
+        }
     }
 
     private func selectReviewCandidate() {
-        let candidates = dueEntries.isEmpty ? entries : dueEntries
+        let deckEntries = entriesForSelectedBook
+        let deckDueEntries = deckEntries.filter { $0.isDue() }
+        let candidates = deckDueEntries.isEmpty ? deckEntries : deckDueEntries
         selectedEntryID = candidates.randomElement()?.persistentModelID
-        filter = dueEntries.isEmpty ? .all : .due
+        filter = deckDueEntries.isEmpty ? .all : .due
+    }
+
+    private func importEntries(from result: Result<URL, Error>) {
+        do {
+            let url = try result.get()
+            let didStartAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if didStartAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            let data = try Data(contentsOf: url)
+            let snapshots = try JSONDecoder.vocabApp.decode([VocabEntrySnapshot].self, from: data)
+            let existingKeys = Set(entries.map(importKey(for:)))
+            snapshots
+                .filter { !existingKeys.contains(importKey(for: $0)) }
+                .map { $0.makeEntry() }
+                .forEach(modelContext.insert)
+            try modelContext.save()
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func importKey(for entry: VocabEntry) -> String {
+        "\(entry.languageRaw)|\(entry.word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())|\(clean(entry.bookTitle) ?? "")"
+    }
+
+    private func importKey(for snapshot: VocabEntrySnapshot) -> String {
+        "\(snapshot.languageRaw)|\(snapshot.word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())|\(clean(snapshot.bookTitle) ?? "")"
+    }
+
+    private func clean(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty
+        else { return nil }
+        return trimmed
     }
 }
 

@@ -6,8 +6,9 @@ A native macOS vocabulary app for capturing and reviewing words from books, focu
 
 - Add English or Korean vocabulary with automatic language detection.
 - Fetch English definitions and clean Korean meanings for English vocab.
-- Save source sentences and book titles for reading context.
-- Review due words with pronunciation, favorites, and review counts.
+- Save source sentences and book titles for reading context and deck filtering.
+- Review due words with spaced repetition, cloze prompts, pronunciation, favorites, and difficulty controls.
+- Import/export JSON libraries between the macOS and browser apps.
 - Local-first storage with SwiftData; no accounts or backend.
 
 ## Development

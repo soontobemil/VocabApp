@@ -3,6 +3,7 @@ import Foundation
 struct DictionaryDefinition {
     let displayText: String
     let translationSeeds: [String]
+    let examples: [String]
 }
 
 struct DictionaryClient {
@@ -37,11 +38,12 @@ struct DictionaryClient {
             .flatMap { meaning in
                 meaning.definitions.map { definition in
                     let cleaned = definition.definition.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let example = definition.example?.trimmingCharacters(in: .whitespacesAndNewlines)
                     let glossSeed = koreanGlossSeed(from: cleaned)
                     if meaning.partOfSpeech.isEmpty {
-                        return (display: cleaned, plain: glossSeed)
+                        return (display: cleaned, plain: glossSeed, example: example)
                     }
-                    return (display: "(\(meaning.partOfSpeech)) \(cleaned)", plain: glossSeed)
+                    return (display: "(\(meaning.partOfSpeech)) \(cleaned)", plain: glossSeed, example: example)
                 }
             }
             .filter { !$0.display.isEmpty }
@@ -61,7 +63,8 @@ struct DictionaryClient {
             .joined(separator: "\n")
         return DictionaryDefinition(
             displayText: displayText,
-            translationSeeds: definitions.map(\.plain)
+            translationSeeds: definitions.map(\.plain),
+            examples: definitions.compactMap(\.example)
         )
     }
 
@@ -113,4 +116,5 @@ private struct DictMeaning: Decodable {
 
 private struct DictDefinition: Decodable {
     let definition: String
+    let example: String?
 }

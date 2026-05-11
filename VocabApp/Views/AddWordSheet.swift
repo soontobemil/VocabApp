@@ -19,6 +19,7 @@ struct AddWordSheet: View {
 
     @State private var lastFetchedDefinition: String = ""
     @State private var lastFetchedTranslation: String = ""
+    @State private var lastFetchedSentence: String = ""
     @State private var fetchTask: Task<Void, Never>?
     @State private var autocorrectedFrom: String?
     @State private var isApplyingAutocorrection: Bool = false
@@ -179,6 +180,10 @@ struct AddWordSheet: View {
             translation = ""
             lastFetchedTranslation = ""
         }
+        if sentence == lastFetchedSentence {
+            sentence = ""
+            lastFetchedSentence = ""
+        }
         autocorrectedFrom = nil
 
         fetchTask?.cancel()
@@ -229,6 +234,11 @@ struct AddWordSheet: View {
                 translation = fetched
                 lastFetchedTranslation = fetched
             }
+            if let fetched = result.sentence,
+               (sentence.isEmpty || sentence == lastFetchedSentence) {
+                sentence = fetched
+                lastFetchedSentence = fetched
+            }
             isFetching = false
         }
     }
@@ -273,6 +283,7 @@ struct AddWordSheet: View {
         isFetching = false
         lastFetchedDefinition = ""
         lastFetchedTranslation = ""
+        lastFetchedSentence = ""
         autocorrectedFrom = nil
         isWordFocused = true
     }

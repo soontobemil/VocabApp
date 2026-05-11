@@ -21,11 +21,15 @@
           <div class="stats-grid">
             <span><b id="totalCount">0</b> saved</span>
             <span><b id="reviewedTodayCount">0</b> today</span>
+            <span><b id="newTodayCount">0</b> new</span>
             <span><b id="starredCount">0</b> starred</span>
           </div>
         </section>
 
         <input id="searchInput" class="search" type="search" placeholder="Search words, meanings, books..." />
+        <select id="deckSelect" class="deck-select" aria-label="Book deck">
+          <option value="">All Books</option>
+        </select>
 
         <div class="filter-row" role="tablist" aria-label="Filters">
           <button class="filter is-active" data-filter="due">Due</button>
@@ -41,6 +45,8 @@
         <header class="toolbar">
           <button id="reviewButton" class="ghost-button">Review random</button>
           <button id="exportButton" class="ghost-button">Export JSON</button>
+          <button id="importButton" class="ghost-button">Import JSON</button>
+          <input id="importInput" class="hidden" type="file" accept="application/json,.json" />
           <button id="addButton" class="primary-button">Add word</button>
         </header>
 
@@ -70,11 +76,17 @@
           <article class="study-card">
             <div class="study-card-header">
               <h3 id="studyCardTitle">Study card</h3>
-              <button id="markReviewedButton" class="primary-button">Mark reviewed</button>
               <button id="nextButton" class="ghost-button">Next</button>
             </div>
+            <div id="clozeBlock" class="cloze-block hidden"></div>
             <div id="meaningBlock" class="meaning-block"></div>
             <blockquote id="sentenceBlock" class="sentence-block hidden"></blockquote>
+            <div class="difficulty-row" aria-label="Review difficulty">
+              <button class="difficulty-button" data-quality="again">Again<small>today</small></button>
+              <button class="difficulty-button" data-quality="hard">Hard<small>1d</small></button>
+              <button class="difficulty-button" data-quality="good">Good<small>next</small></button>
+              <button class="difficulty-button" data-quality="easy">Easy<small>longer</small></button>
+            </div>
           </article>
 
           <form id="editForm" class="edit-grid">

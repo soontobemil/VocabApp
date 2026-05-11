@@ -1,10 +1,25 @@
 const STORAGE_KEY = "vocabapp.entries.v1";
 const LAST_BOOK_KEY = "vocabapp.lastBookTitle.v1";
 const DEBOUNCE_MS = 500;
+const DEFAULT_EASE_FACTOR = 2.5;
+
+const KOREAN_GLOSSARY = {
+  regression: "1) 회귀\n2) 퇴행\n3) 회귀 분석",
+  vindication: "1) 정당화\n2) 입증\n3) 해명",
+  ensuing: "뒤이어 일어나는",
+  tyro: "초보자, 초심자",
+  abyss: "1) 심연\n2) 깊은 구렁\n3) 끝을 알 수 없는 차이",
+  serendipity: "뜻밖의 발견, 우연한 행운",
+  resilience: "회복력, 탄력성",
+  scrutiny: "면밀한 조사, 정밀 검토",
+  tenacity: "끈기, 집요함",
+  ephemeral: "덧없는, 수명이 짧은",
+};
 
 let entries = loadEntries();
 let selectedId = entries[0]?.id ?? null;
 let activeFilter = "due";
+let activeBookTitle = "";
 let fetchTimer = null;
 let fetchController = null;
 
@@ -14,8 +29,10 @@ const elements = {
   dueCount: $("dueCount"),
   totalCount: $("totalCount"),
   reviewedTodayCount: $("reviewedTodayCount"),
+  newTodayCount: $("newTodayCount"),
   starredCount: $("starredCount"),
   searchInput: $("searchInput"),
+  deckSelect: $("deckSelect"),
   wordList: $("wordList"),
   emptyState: $("emptyState"),
   detailPanel: $("detailPanel"),
@@ -24,6 +41,8 @@ const elements = {
   addButton: $("addButton"),
   reviewButton: $("reviewButton"),
   exportButton: $("exportButton"),
+  importButton: $("importButton"),
+  importInput: $("importInput"),
   wordInput: $("wordInput"),
   addLanguageBadge: $("addLanguageBadge"),
   addSpeakButton: $("addSpeakButton"),
@@ -40,9 +59,9 @@ const elements = {
   reviewSummary: $("reviewSummary"),
   speakButton: $("speakButton"),
   favoriteButton: $("favoriteButton"),
-  markReviewedButton: $("markReviewedButton"),
   nextButton: $("nextButton"),
   studyCardTitle: $("studyCardTitle"),
+  clozeBlock: $("clozeBlock"),
   meaningBlock: $("meaningBlock"),
   sentenceBlock: $("sentenceBlock"),
   editForm: $("editForm"),
@@ -56,7 +75,7 @@ const elements = {
 function loadEntries() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? JSON.parse(raw).map(normalizeEntry) : [];
   } catch {
     return [];
   }
@@ -66,11 +85,35 @@ function saveEntries() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
+function normalizeEntry(entry) {
+  const word = clean(entry.word);
+  const language = entry.language ?? entry.languageRaw ?? detectLanguage(word);
+  return {
+    id: entry.id ?? crypto.randomUUID(),
+    word,
+    language,
+    definition: clean(entry.definition),
+    meaning: clean(entry.meaning ?? entry.translation),
+    sentence: clean(entry.sentence),
+    bookTitle: clean(entry.bookTitle),
+    createdAt: entry.createdAt ?? new Date().toISOString(),
+    isFavorite: Boolean(entry.isFavorite),
+    lastReviewedAt: entry.lastReviewedAt ?? null,
+    reviewCount: Number(entry.reviewCount ?? 0),
+    nextReviewAt: entry.nextReviewAt ?? null,
+    reviewIntervalDays: Number(entry.reviewIntervalDays ?? 0),
+    easeFactor: Number(entry.easeFactor ?? DEFAULT_EASE_FACTOR),
+  };
+}
+
 function detectLanguage(text) {
   return /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7a3\ud7b0-\ud7ff]/u.test(text) ? "ko" : "en";
 }
 
 function isDue(entry, date = new Date()) {
+  if (entry.nextReviewAt) {
+    return new Date(entry.nextReviewAt) <= date;
+  }
   if (!entry.lastReviewedAt) {
     return true;
   }
@@ -82,6 +125,10 @@ function reviewedToday(entry) {
   return Boolean(entry.lastReviewedAt) && new Date(entry.lastReviewedAt).toDateString() === new Date().toDateString();
 }
 
+function createdToday(entry) {
+  return Boolean(entry.createdAt) && new Date(entry.createdAt).toDateString() === new Date().toDateString();
+}
+
 function clean(value) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "";
@@ -89,13 +136,13 @@ function clean(value) {
 
 function visibleEntries() {
   const search = elements.searchInput.value.trim().toLowerCase();
-  let scoped = entries;
+  let scoped = entriesForActiveDeck();
   if (activeFilter === "due") {
-    scoped = entries.filter((entry) => isDue(entry));
+    scoped = scoped.filter((entry) => isDue(entry));
   } else if (activeFilter === "starred") {
-    scoped = entries.filter((entry) => entry.isFavorite);
+    scoped = scoped.filter((entry) => entry.isFavorite);
   } else if (activeFilter === "ko") {
-    scoped = entries.filter((entry) => entry.language === "ko");
+    scoped = scoped.filter((entry) => entry.language === "ko");
   }
 
   if (!search) {
@@ -108,15 +155,33 @@ function visibleEntries() {
   );
 }
 
+function entriesForActiveDeck() {
+  return activeBookTitle ? entries.filter((entry) => clean(entry.bookTitle) === activeBookTitle) : entries;
+}
+
 function render() {
   const due = entries.filter((entry) => isDue(entry));
   elements.dueCount.textContent = due.length;
   elements.totalCount.textContent = entries.length;
   elements.reviewedTodayCount.textContent = entries.filter(reviewedToday).length;
+  elements.newTodayCount.textContent = entries.filter(createdToday).length;
   elements.starredCount.textContent = entries.filter((entry) => entry.isFavorite).length;
 
+  renderDeckOptions();
   renderList();
   renderDetail();
+}
+
+function renderDeckOptions() {
+  const titles = [...new Set(entries.map((entry) => clean(entry.bookTitle)).filter(Boolean))].sort();
+  if (activeBookTitle && !titles.includes(activeBookTitle)) {
+    activeBookTitle = "";
+  }
+  elements.deckSelect.replaceChildren(new Option("All Books", ""));
+  for (const title of titles) {
+    elements.deckSelect.append(new Option(title, title));
+  }
+  elements.deckSelect.value = activeBookTitle;
 }
 
 function renderList() {
@@ -181,6 +246,9 @@ function renderDetail() {
   `;
 
   const sentence = clean(entry.sentence);
+  const cloze = clozeSentence(entry);
+  elements.clozeBlock.textContent = cloze;
+  elements.clozeBlock.classList.toggle("hidden", !cloze);
   elements.sentenceBlock.textContent = sentence;
   elements.sentenceBlock.classList.toggle("hidden", !sentence);
 
@@ -192,10 +260,24 @@ function renderDetail() {
 }
 
 function reviewSummary(entry) {
+  const next = entry.nextReviewAt ? `, next ${new Date(entry.nextReviewAt).toLocaleDateString()}` : "";
+  const interval = entry.reviewIntervalDays ? `, ${entry.reviewIntervalDays}-day interval` : "";
   if (entry.lastReviewedAt) {
-    return `Reviewed ${entry.reviewCount}x, last ${new Date(entry.lastReviewedAt).toLocaleDateString()}`;
+    return `Reviewed ${entry.reviewCount}x, last ${new Date(entry.lastReviewedAt).toLocaleDateString()}${next}${interval}`;
   }
-  return isDue(entry) ? "New or due for first review" : "Ready";
+  return isDue(entry) ? "New or due for first review" : `Ready${next}${interval}`;
+}
+
+function clozeSentence(entry) {
+  const sentence = clean(entry.sentence);
+  const word = clean(entry.word);
+  if (!sentence || !word) {
+    return "";
+  }
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const boundaryPattern = new RegExp(`\\b${escaped}\\b`, "ig");
+  const replaced = sentence.replace(boundaryPattern, "_____");
+  return replaced === sentence ? sentence.replace(word, "_____") : replaced;
 }
 
 function openAddDialog() {
@@ -252,6 +334,9 @@ async function enrichWord(word) {
     if (enriched.definition && !clean(elements.definitionInput.value)) {
       elements.definitionInput.value = enriched.definition;
     }
+    if (enriched.sentence && !clean(elements.sentenceInput.value)) {
+      elements.sentenceInput.value = enriched.sentence;
+    }
   } catch (error) {
     if (error.name !== "AbortError") {
       elements.fetchStatus.textContent = "Could not fetch automatically. You can still save manually.";
@@ -269,6 +354,7 @@ async function fetchEnrichment(word, language, signal) {
     return {
       definition: "",
       meaning: await translate(word, "ko", "en", signal) ?? "",
+      sentence: "",
       correctedWord: null,
     };
   }
@@ -277,7 +363,8 @@ async function fetchEnrichment(word, language, signal) {
   if (lookup) {
     return {
       definition: lookup.displayText,
-      meaning: await meaningFromSeeds(lookup.translationSeeds, signal),
+      meaning: KOREAN_GLOSSARY[word.toLowerCase()] ?? await meaningFromSeeds(lookup.translationSeeds, signal),
+      sentence: exampleSentence(word, lookup),
       correctedWord: null,
     };
   }
@@ -288,7 +375,8 @@ async function fetchEnrichment(word, language, signal) {
     if (correctedLookup) {
       return {
         definition: correctedLookup.displayText,
-        meaning: await meaningFromSeeds(correctedLookup.translationSeeds, signal),
+        meaning: KOREAN_GLOSSARY[correctedWord.toLowerCase()] ?? await meaningFromSeeds(correctedLookup.translationSeeds, signal),
+        sentence: exampleSentence(correctedWord, correctedLookup),
         correctedWord,
       };
     }
@@ -297,6 +385,7 @@ async function fetchEnrichment(word, language, signal) {
   return {
     definition: "",
     meaning: await cleanKoreanGloss(await translate(`${word} meaning`, "en", "ko", signal) ?? ""),
+    sentence: "",
     correctedWord: null,
   };
 }
@@ -327,7 +416,7 @@ function formatDefinitions(entriesFromApi) {
           continue;
         }
         seen.add(key);
-        definitions.push({ display, seed: koreanGlossSeed(text) });
+        definitions.push({ display, seed: koreanGlossSeed(text), example: clean(definition.example) });
         if (definitions.length >= 5) {
           break;
         }
@@ -348,7 +437,16 @@ function formatDefinitions(entriesFromApi) {
   return {
     displayText: definitions.map((definition, index) => `${index + 1}) ${definition.display}`).join("\n"),
     translationSeeds: definitions.map((definition) => definition.seed),
+    examples: definitions.map((definition) => definition.example).filter(Boolean),
   };
+}
+
+function exampleSentence(word, lookup) {
+  if (lookup.examples.length) {
+    return lookup.examples[0];
+  }
+  const seed = lookup.translationSeeds.find(Boolean);
+  return seed ? `The author uses "${word}" to suggest ${seed}.` : "";
 }
 
 function koreanGlossSeed(definition) {
@@ -471,6 +569,9 @@ function saveFromDialog(closeAfterSave) {
     isFavorite: false,
     lastReviewedAt: null,
     reviewCount: 0,
+    nextReviewAt: null,
+    reviewIntervalDays: 0,
+    easeFactor: DEFAULT_EASE_FACTOR,
   };
   entries.unshift(entry);
   selectedId = entry.id;
@@ -518,8 +619,9 @@ function speak(text, language) {
 }
 
 function selectReviewCandidate() {
-  const due = entries.filter((entry) => isDue(entry));
-  const candidates = due.length ? due : entries;
+  const deckEntries = entriesForActiveDeck();
+  const due = deckEntries.filter((entry) => isDue(entry));
+  const candidates = due.length ? due : deckEntries;
   if (!candidates.length) {
     return;
   }
@@ -530,13 +632,87 @@ function selectReviewCandidate() {
 }
 
 function exportJson() {
-  const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(entries.map(toExportSnapshot), null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = "vocabapp-export.json";
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function toExportSnapshot(entry) {
+  return {
+    word: entry.word,
+    languageRaw: entry.language,
+    definition: entry.definition || null,
+    translation: entry.meaning || null,
+    sentence: entry.sentence || null,
+    bookTitle: entry.bookTitle || null,
+    createdAt: entry.createdAt,
+    isFavorite: entry.isFavorite,
+    lastReviewedAt: entry.lastReviewedAt,
+    reviewCount: entry.reviewCount,
+    nextReviewAt: entry.nextReviewAt,
+    reviewIntervalDays: entry.reviewIntervalDays,
+    easeFactor: entry.easeFactor,
+  };
+}
+
+async function importJsonFile(file) {
+  try {
+    const decoded = JSON.parse(await file.text());
+    const incoming = (Array.isArray(decoded) ? decoded : []).map(normalizeEntry).filter((entry) => entry.word);
+    const existingKeys = new Set(entries.map(importKey));
+    const imported = incoming.filter((entry) => !existingKeys.has(importKey(entry)));
+    entries = [...imported, ...entries];
+    selectedId = imported[0]?.id ?? selectedId;
+    saveEntries();
+    render();
+  } catch {
+    alert("Could not import that JSON file.");
+  } finally {
+    elements.importInput.value = "";
+  }
+}
+
+function importKey(entry) {
+  return `${entry.language}|${entry.word.toLowerCase()}|${clean(entry.bookTitle).toLowerCase()}`;
+}
+
+function markReviewed(entry, quality) {
+  const now = new Date();
+  let interval = Number(entry.reviewIntervalDays ?? 0);
+  let ease = Number(entry.easeFactor ?? DEFAULT_EASE_FACTOR);
+
+  if (quality === "again") {
+    interval = 0;
+    ease = Math.max(1.3, ease - 0.2);
+  } else if (quality === "hard") {
+    interval = Math.max(1, interval);
+    ease = Math.max(1.3, ease - 0.15);
+  } else if (quality === "easy") {
+    interval = interval === 0 ? 3 : Math.max(4, Math.round(interval * (ease + 0.35)));
+    ease = Math.min(3.2, ease + 0.15);
+  } else {
+    if (interval === 0) {
+      interval = 1;
+    } else if (interval === 1) {
+      interval = 3;
+    } else {
+      interval = Math.max(1, Math.round(interval * ease));
+    }
+  }
+
+  const nextReviewAt = new Date(now);
+  nextReviewAt.setDate(now.getDate() + interval);
+  patchSelected({
+    lastReviewedAt: now.toISOString(),
+    reviewCount: entry.reviewCount + 1,
+    reviewIntervalDays: interval,
+    easeFactor: ease,
+    nextReviewAt: nextReviewAt.toISOString(),
+  });
 }
 
 function syncFilterButtons() {
@@ -565,8 +741,19 @@ elements.addForm.addEventListener("submit", (event) => {
 elements.wordInput.addEventListener("input", scheduleEnrichment);
 elements.addSpeakButton.addEventListener("click", () => speak(elements.wordInput.value, detectLanguage(elements.wordInput.value)));
 elements.searchInput.addEventListener("input", render);
+elements.deckSelect.addEventListener("change", () => {
+  activeBookTitle = elements.deckSelect.value;
+  render();
+});
 elements.reviewButton.addEventListener("click", selectReviewCandidate);
 elements.exportButton.addEventListener("click", exportJson);
+elements.importButton.addEventListener("click", () => elements.importInput.click());
+elements.importInput.addEventListener("change", () => {
+  const file = elements.importInput.files?.[0];
+  if (file) {
+    importJsonFile(file);
+  }
+});
 
 document.querySelectorAll(".filter").forEach((button) => {
   button.addEventListener("click", () => {
@@ -590,14 +777,13 @@ elements.favoriteButton.addEventListener("click", () => {
   }
 });
 
-elements.markReviewedButton.addEventListener("click", () => {
-  const entry = selectedEntry();
-  if (entry) {
-    patchSelected({
-      lastReviewedAt: new Date().toISOString(),
-      reviewCount: entry.reviewCount + 1,
-    });
-  }
+document.querySelectorAll("[data-quality]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const entry = selectedEntry();
+    if (entry) {
+      markReviewed(entry, button.dataset.quality);
+    }
+  });
 });
 
 elements.nextButton.addEventListener("click", selectReviewCandidate);

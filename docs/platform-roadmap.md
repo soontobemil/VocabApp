@@ -12,7 +12,7 @@ The current app is a native macOS app built with SwiftUI, SwiftData, and AppKit-
 2. Migrate to a cross-platform shell.
    - Recommended path if Windows support is a real goal.
    - Tauri, Flutter, or Electron can target macOS and Windows from one UI codebase.
-   - Keep the existing data concepts: word, language, meaning, definition, sentence, book, review state.
+   - Keep the existing data concepts: word, language, meaning, definition, sentence, book, review schedule, and JSON import/export.
 
 3. Build a local-first web app.
    - Browser-based and immediately cross-platform.
@@ -25,6 +25,6 @@ Use Tauri if the app should stay lightweight and desktop-focused. Keep this Swif
 
 ## Current Windows Support
 
-The repository now includes a browser-based app in `web/` that runs on Windows, macOS, and Linux. This is the first cross-platform layer and can be packaged later as a native Windows installer with Tauri or Electron.
+The repository now includes a browser-based app in `web/` that runs on Windows, macOS, and Linux. It supports the same core productivity flow as the macOS app: book decks, spaced repetition, cloze prompts, pronunciation, and JSON import/export. This is the first cross-platform layer and can be packaged later as a native Windows installer with Tauri or Electron.
 
 For Windows setup instructions, see `docs/windows.md`.

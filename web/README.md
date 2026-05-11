@@ -8,8 +8,10 @@ This is the Windows-compatible version of VocabApp. It runs in a browser on Wind
 - Fetch English definitions and Korean meanings.
 - Save source sentence and book context.
 - Search, filter, star, and review words.
+- Filter by book deck.
+- Review with spaced repetition, cloze prompts, and difficulty buttons.
 - Pronounce words with browser speech synthesis.
-- Export saved words as JSON.
+- Import/export saved words as JSON compatible with the macOS app.
 
 ## Run Locally
 
@@ -44,5 +46,5 @@ py -m http.server 5173
 ## Limitations
 
 - Browser data is per browser/profile. Clearing site data will remove saved words unless they were exported first.
-- The web app does not share data automatically with the native macOS SwiftData app.
+- The web app does not sync automatically with the native macOS SwiftData app. Use JSON import/export to move data manually.
 - API calls require internet access.

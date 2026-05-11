@@ -110,7 +110,7 @@ h1 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-top: 16px;
 }
@@ -130,6 +130,7 @@ h1 {
 }
 
 .search,
+.deck-select,
 input,
 textarea {
   width: 100%;
@@ -141,8 +142,13 @@ textarea {
 }
 
 .search,
+.deck-select,
 input {
   padding: 12px 14px;
+}
+
+.deck-select {
+  appearance: none;
 }
 
 textarea {
@@ -356,6 +362,16 @@ textarea:focus {
   white-space: pre-line;
 }
 
+.cloze-block {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  color: var(--text);
+  background: rgba(31, 143, 120, 0.14);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
 .meaning-block strong {
   display: block;
   margin-bottom: 12px;
@@ -373,6 +389,29 @@ textarea:focus {
   border-left: 3px solid var(--orange);
   color: var(--muted);
   font-style: italic;
+}
+
+.difficulty-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.difficulty-button {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  font-weight: 900;
+}
+
+.difficulty-button small {
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .edit-grid,
@@ -450,5 +489,9 @@ label {
   .toolbar {
     justify-content: stretch;
     flex-wrap: wrap;
+  }
+
+  .difficulty-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

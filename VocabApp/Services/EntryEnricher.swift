@@ -4,21 +4,28 @@ struct EnrichedWord {
     let correctedWord: String?
     let definition: String?
     let translation: String?
+    let sentence: String?
 }
 
 struct EntryEnricher {
     let dictionary: DictionaryClient
     let translator: TranslationClient
     let spellingCorrector: SpellingCorrector
+    let glossary: KoreanGlossary
+    let exampleGenerator: ExampleSentenceGenerator
 
     init(
         dictionary: DictionaryClient = DictionaryClient(),
         translator: TranslationClient = TranslationClient(),
-        spellingCorrector: SpellingCorrector = SpellingCorrector()
+        spellingCorrector: SpellingCorrector = SpellingCorrector(),
+        glossary: KoreanGlossary = KoreanGlossary(),
+        exampleGenerator: ExampleSentenceGenerator = ExampleSentenceGenerator()
     ) {
         self.dictionary = dictionary
         self.translator = translator
         self.spellingCorrector = spellingCorrector
+        self.glossary = glossary
+        self.exampleGenerator = exampleGenerator
     }
 
     func enrich(word: String, language: Language) async -> EnrichedWord {
@@ -32,11 +39,18 @@ struct EntryEnricher {
         return EnrichedWord(
             correctedWord: lookup.correctedWord,
             definition: lookup.definition?.displayText,
-            translation: translation
+            translation: translation,
+            sentence: exampleGenerator.sentence(for: lookup.word, definition: lookup.definition)
         )
     }
 
     private func translate(lookup: DefinitionLookup, from source: Language, to target: Language) async -> String? {
+        if source == .en,
+           target == .ko,
+           let glossaryMeaning = glossary.meaning(for: lookup.word) {
+            return glossaryMeaning
+        }
+
         if source == .en,
            let definition = lookup.definition {
             let translatedSenses = await translateSenses(definition.translationSeeds, from: source, to: target)

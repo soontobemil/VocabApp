@@ -11,14 +11,19 @@ enum EntryFilter: String, CaseIterable, Identifiable {
 }
 
 struct SidebarView: View {
+    static let allBooksTitle = "All Books"
+
     let entries: [VocabEntry]
     let totalCount: Int
     let dueCount: Int
     let favoriteCount: Int
     let reviewedTodayCount: Int
+    let newTodayCount: Int
+    let bookTitles: [String]
     @Binding var selection: PersistentIdentifier?
     @Binding var searchText: String
     @Binding var filter: EntryFilter
+    @Binding var selectedBookTitle: String
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,7 +32,10 @@ struct SidebarView: View {
                 dueCount: dueCount,
                 favoriteCount: favoriteCount,
                 reviewedTodayCount: reviewedTodayCount,
-                filter: $filter
+                newTodayCount: newTodayCount,
+                bookTitles: bookTitles,
+                filter: $filter,
+                selectedBookTitle: $selectedBookTitle
             )
 
             List(selection: $selection) {
@@ -39,7 +47,7 @@ struct SidebarView: View {
         }
         .searchable(text: $searchText, placement: .sidebar, prompt: "Search")
         .navigationTitle("Vocab")
-        .frame(minWidth: 260)
+        .frame(minWidth: 290)
     }
 
     private func rowSubtitle(for entry: VocabEntry) -> String {
@@ -64,7 +72,10 @@ private struct SidebarHeader: View {
     let dueCount: Int
     let favoriteCount: Int
     let reviewedTodayCount: Int
+    let newTodayCount: Int
+    let bookTitles: [String]
     @Binding var filter: EntryFilter
+    @Binding var selectedBookTitle: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -89,8 +100,17 @@ private struct SidebarHeader: View {
 
             HStack(spacing: 8) {
                 StatPill(title: "Today", value: reviewedTodayCount, tint: .green)
+                StatPill(title: "New", value: newTodayCount, tint: .teal)
                 StatPill(title: "Starred", value: favoriteCount, tint: .yellow)
             }
+
+            Picker("Book", selection: $selectedBookTitle) {
+                Text(SidebarView.allBooksTitle).tag(SidebarView.allBooksTitle)
+                ForEach(bookTitles, id: \.self) { title in
+                    Text(title).tag(title)
+                }
+            }
+            .labelsHidden()
 
             Picker("Filter", selection: $filter) {
                 ForEach(EntryFilter.allCases) { filter in
@@ -167,6 +187,10 @@ private struct EntryRow: View {
                 ReviewBadge(isDue: entry.isDue())
                 if entry.reviewCount > 0 {
                     Text("\(entry.reviewCount)x reviewed")
+                        .foregroundStyle(.secondary)
+                }
+                if entry.reviewIntervalDays > 0 {
+                    Text("\(entry.reviewIntervalDays)d")
                         .foregroundStyle(.secondary)
                 }
             }

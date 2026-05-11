@@ -71,10 +71,17 @@ struct DetailView: View {
     }
 
     private var reviewSummary: String {
-        if let lastReviewedAt = entry.lastReviewedAt {
-            return "Reviewed \(entry.reviewCount)x, last \(lastReviewedAt.formatted(date: .abbreviated, time: .omitted))"
+        let schedule: String
+        if let nextReviewAt = entry.nextReviewAt {
+            schedule = "next \(nextReviewAt.formatted(date: .abbreviated, time: .omitted))"
+        } else {
+            schedule = "unscheduled"
         }
-        return entry.isDue() ? "New or due for first review" : "Ready"
+
+        if let lastReviewedAt = entry.lastReviewedAt {
+            return "Reviewed \(entry.reviewCount)x, last \(lastReviewedAt.formatted(date: .abbreviated, time: .omitted)), \(schedule)"
+        }
+        return entry.isDue() ? "New or due for first review" : "Ready, \(schedule)"
     }
 
     private func clean(_ value: String?) -> String? {
@@ -117,6 +124,9 @@ private struct WordHero: View {
                         Text(reviewSummary)
                         if let bookTitle {
                             Text("From \(bookTitle)")
+                        }
+                        if entry.reviewIntervalDays > 0 {
+                            Text("\(entry.reviewIntervalDays)-day interval")
                         }
                     }
                     .font(.caption)
@@ -194,6 +204,20 @@ private struct ReviewCard: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
+                if let clozeSentence = clean(entry.clozeSentence) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Cloze")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        Text(clozeSentence)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .textSelection(.enabled)
+                    }
+                    Divider()
+                }
+
                 VStack(alignment: .leading, spacing: 10) {
                     if let translation = clean(entry.translation) {
                         Text(translation)
@@ -230,18 +254,26 @@ private struct ReviewCard: View {
                 }
             }
 
-            HStack {
-                Button {
-                    entry.markReviewed()
-                } label: {
-                    Label("Mark Reviewed", systemImage: "checkmark.circle")
-                }
-                .keyboardShortcut(.return, modifiers: [])
+            VStack(alignment: .leading, spacing: 8) {
+                Text("How well did you know it?")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
 
-                Button {
-                    showNextReview()
-                } label: {
-                    Label("Next Word", systemImage: "arrow.right")
+                HStack(spacing: 8) {
+                    ForEach(ReviewQuality.allCases) { quality in
+                        ReviewQualityButton(quality: quality) {
+                            entry.markReviewed(quality: quality)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button {
+                        showNextReview()
+                    } label: {
+                        Label("Next Word", systemImage: "arrow.right")
+                    }
                 }
             }
         }
@@ -258,6 +290,40 @@ private struct ReviewCard: View {
               !trimmed.isEmpty
         else { return nil }
         return trimmed
+    }
+}
+
+private struct ReviewQualityButton: View {
+    let quality: ReviewQuality
+    let action: () -> Void
+
+    private var tint: Color {
+        switch quality {
+        case .again:
+            .red
+        case .hard:
+            .orange
+        case .good:
+            .green
+        case .easy:
+            .teal
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Text(quality.rawValue.capitalized)
+                    .fontWeight(.semibold)
+                Text(quality.intervalHint)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(minWidth: 72)
+        }
+        .buttonStyle(.bordered)
+        .tint(tint)
+        .keyboardShortcut(quality == .good ? .return : KeyEquivalent(Character(String(quality.rawValue.lowercased().prefix(1)))), modifiers: [])
     }
 }
 

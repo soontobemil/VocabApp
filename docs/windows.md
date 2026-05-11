@@ -35,7 +35,18 @@ Important implications:
 - Data stays on the current Windows browser profile.
 - Clearing browser site data can delete saved vocabulary.
 - Use `Export JSON` before clearing browser data or moving machines.
+- Use `Import JSON` to restore a previous export or move vocabulary from the native macOS app.
 - The web app does not automatically sync with the native macOS app.
+
+## Review Features
+
+The Windows browser app supports the same core study flow as the macOS app:
+
+- Book deck filtering.
+- Spaced repetition scheduling.
+- Again, Hard, Good, and Easy review buttons.
+- Cloze prompts generated from saved source sentences.
+- Local pronunciation through browser speech synthesis.
 
 ## API Usage
 
