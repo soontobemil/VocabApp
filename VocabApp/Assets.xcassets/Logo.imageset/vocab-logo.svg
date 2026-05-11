@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="128" y1="96" x2="896" y2="928" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#102421"/>
+      <stop offset="0.55" stop-color="#153f3a"/>
+      <stop offset="1" stop-color="#d9853b"/>
+    </linearGradient>
+    <linearGradient id="page" x1="260" y1="246" x2="774" y2="788" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff5df"/>
+      <stop offset="1" stop-color="#f1dba8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#061411" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
+  <path d="M186 696c92-26 184-25 276 3 32 10 66 10 98 0 92-28 184-29 278-3V304c-95-32-191-31-286 4-27 10-55 10-82 0-95-35-190-36-284-4v392Z" fill="#06201d" opacity="0.34"/>
+  <g filter="url(#shadow)">
+    <path d="M212 276c90-30 181-26 272 12v470c-91-38-182-42-272-12V276Z" fill="url(#page)"/>
+    <path d="M540 288c91-38 182-42 272-12v470c-90-30-181-26-272 12V288Z" fill="url(#page)"/>
+    <path d="M512 296v458" stroke="#17302d" stroke-width="18" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  <path d="M276 368h140M276 424h164M276 480h124" stroke="#1c403b" stroke-width="26" stroke-linecap="round" opacity="0.88"/>
+  <path d="M608 368h140M608 424h164M608 480h108" stroke="#1c403b" stroke-width="26" stroke-linecap="round" opacity="0.88"/>
+  <text x="316" y="645" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="178" font-weight="800" fill="#123631">V</text>
+  <text x="584" y="650" font-family="Apple SD Gothic Neo, AppleGothic, sans-serif" font-size="162" font-weight="800" fill="#123631">가</text>
+  <path d="M725 220v156l-42-31-42 31V237c28-11 56-17 84-17Z" fill="#e58d45"/>
+</svg>

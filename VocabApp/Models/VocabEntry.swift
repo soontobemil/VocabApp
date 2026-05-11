@@ -11,10 +11,23 @@ final class VocabEntry {
     var sentence: String?
     var bookTitle: String?
     var createdAt: Date = Date()
+    var isFavorite: Bool = false
+    var lastReviewedAt: Date?
+    var reviewCount: Int = 0
 
     var language: Language {
         get { Language(rawValue: languageRaw) ?? .en }
         set { languageRaw = newValue.rawValue }
+    }
+
+    func isDue(on date: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard let lastReviewedAt else { return true }
+        return !calendar.isDate(lastReviewedAt, inSameDayAs: date)
+    }
+
+    func markReviewed(at date: Date = Date()) {
+        lastReviewedAt = date
+        reviewCount += 1
     }
 
     init(
@@ -24,7 +37,10 @@ final class VocabEntry {
         translation: String? = nil,
         sentence: String? = nil,
         bookTitle: String? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        isFavorite: Bool = false,
+        lastReviewedAt: Date? = nil,
+        reviewCount: Int = 0
     ) {
         self.id = UUID()
         self.word = word
@@ -34,5 +50,8 @@ final class VocabEntry {
         self.sentence = sentence
         self.bookTitle = bookTitle
         self.createdAt = createdAt
+        self.isFavorite = isFavorite
+        self.lastReviewedAt = lastReviewedAt
+        self.reviewCount = reviewCount
     }
 }

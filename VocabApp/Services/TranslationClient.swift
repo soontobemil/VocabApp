@@ -29,10 +29,32 @@ struct TranslationClient {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if translated.isEmpty { return nil }
             if translated.caseInsensitiveCompare(trimmed) == .orderedSame { return nil }
-            return translated
+            return dedupeRepeatedSegments(in: translated)
         } catch {
             return nil
         }
+    }
+
+    private func dedupeRepeatedSegments(in translated: String) -> String {
+        let separators = CharacterSet(charactersIn: ",;")
+        let segments = translated
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard segments.count > 1 else { return translated }
+
+        var seen = Set<String>()
+        let deduped = segments.filter { segment in
+            let key = segment.trimmingCharacters(in: .punctuationCharacters).lowercased()
+            if seen.contains(key) {
+                return false
+            }
+            seen.insert(key)
+            return true
+        }
+
+        return deduped.joined(separator: ", ")
     }
 }
 
