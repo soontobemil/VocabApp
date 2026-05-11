@@ -20,13 +20,25 @@ xcodebuild -scheme VocabApp -destination 'platform=macOS' test
 
 ## Platform
 
-The native SwiftUI app is macOS only.
+This repository now has two app surfaces:
 
-A Windows-compatible browser version is available in `web/`.
+- `VocabApp/`: native macOS SwiftUI app.
+- `web/`: Windows-compatible browser app.
+
+The native SwiftUI app is macOS only. Windows users should run the browser app:
 
 ```bash
 cd web
 python -m http.server 5173
 ```
 
-Open `http://localhost:5173` on Windows, macOS, or Linux. See `web/README.md` and `docs/platform-roadmap.md` for packaging options.
+On Windows:
+
+```powershell
+cd web
+py -m http.server 5173
+```
+
+Open `http://localhost:5173` on Windows, macOS, or Linux.
+
+See `docs/windows.md`, `web/README.md`, and `docs/platform-roadmap.md` for platform details and packaging options.

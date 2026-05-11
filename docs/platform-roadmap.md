@@ -26,3 +26,5 @@ Use Tauri if the app should stay lightweight and desktop-focused. Keep this Swif
 ## Current Windows Support
 
 The repository now includes a browser-based app in `web/` that runs on Windows, macOS, and Linux. This is the first cross-platform layer and can be packaged later as a native Windows installer with Tauri or Electron.
+
+For Windows setup instructions, see `docs/windows.md`.
