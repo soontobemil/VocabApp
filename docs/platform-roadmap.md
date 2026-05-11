@@ -22,3 +22,7 @@ The current app is a native macOS app built with SwiftUI, SwiftData, and AppKit-
 ## Recommended Path
 
 Use Tauri if the app should stay lightweight and desktop-focused. Keep this SwiftUI version as the macOS prototype, then port the data model and enrichment flow into a shared TypeScript app that can package for both macOS and Windows.
+
+## Current Windows Support
+
+The repository now includes a browser-based app in `web/` that runs on Windows, macOS, and Linux. This is the first cross-platform layer and can be packaged later as a native Windows installer with Tauri or Electron.

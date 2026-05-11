@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VocabApp</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <section class="deck-card">
+          <div>
+            <p class="eyebrow">Reading Deck</p>
+            <h1>VocabApp</h1>
+          </div>
+          <div class="due-meter">
+            <strong id="dueCount">0</strong>
+            <span>due</span>
+          </div>
+          <div class="stats-grid">
+            <span><b id="totalCount">0</b> saved</span>
+            <span><b id="reviewedTodayCount">0</b> today</span>
+            <span><b id="starredCount">0</b> starred</span>
+          </div>
+        </section>
+
+        <input id="searchInput" class="search" type="search" placeholder="Search words, meanings, books..." />
+
+        <div class="filter-row" role="tablist" aria-label="Filters">
+          <button class="filter is-active" data-filter="due">Due</button>
+          <button class="filter" data-filter="all">All</button>
+          <button class="filter" data-filter="starred">Starred</button>
+          <button class="filter" data-filter="ko">KO</button>
+        </div>
+
+        <section id="wordList" class="word-list" aria-label="Saved words"></section>
+      </aside>
+
+      <section class="workspace">
+        <header class="toolbar">
+          <button id="reviewButton" class="ghost-button">Review random</button>
+          <button id="exportButton" class="ghost-button">Export JSON</button>
+          <button id="addButton" class="primary-button">Add word</button>
+        </header>
+
+        <section id="emptyState" class="empty-state">
+          <div class="logo-mark">V</div>
+          <h2>Build a bilingual reading deck</h2>
+          <p>Add words from books, keep the original sentence, and review them later on Windows or macOS.</p>
+          <button class="primary-button" data-open-add>Add your first word</button>
+        </section>
+
+        <section id="detailPanel" class="detail-panel hidden">
+          <div class="hero-card">
+            <div>
+              <div class="badge-row">
+                <span id="languageBadge" class="badge">EN -> KO</span>
+                <span id="dueBadge" class="badge warning">Due</span>
+              </div>
+              <h2 id="detailWord"></h2>
+              <p id="reviewSummary"></p>
+            </div>
+            <div class="hero-actions">
+              <button id="speakButton" class="ghost-button">Pronounce</button>
+              <button id="favoriteButton" class="ghost-button">Star</button>
+            </div>
+          </div>
+
+          <article class="study-card">
+            <div class="study-card-header">
+              <h3 id="studyCardTitle">Study card</h3>
+              <button id="markReviewedButton" class="primary-button">Mark reviewed</button>
+              <button id="nextButton" class="ghost-button">Next</button>
+            </div>
+            <div id="meaningBlock" class="meaning-block"></div>
+            <blockquote id="sentenceBlock" class="sentence-block hidden"></blockquote>
+          </article>
+
+          <form id="editForm" class="edit-grid">
+            <label>
+              Word
+              <input id="editWord" type="text" />
+            </label>
+            <label>
+              Meaning
+              <textarea id="editMeaning" rows="4"></textarea>
+            </label>
+            <label>
+              Definition
+              <textarea id="editDefinition" rows="5"></textarea>
+            </label>
+            <label>
+              Sentence
+              <textarea id="editSentence" rows="4"></textarea>
+            </label>
+            <label>
+              Book
+              <input id="editBook" type="text" />
+            </label>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="addDialog" class="add-dialog">
+      <form id="addForm" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Capture</p>
+            <h2>Add Word</h2>
+          </div>
+          <span id="addLanguageBadge" class="badge">EN -> KO</span>
+        </div>
+
+        <label>
+          Word
+          <div class="word-input-row">
+            <input id="wordInput" class="word-input" type="text" autocomplete="off" placeholder="Type a word from your book..." />
+            <button id="addSpeakButton" class="ghost-button" type="button">Pronounce</button>
+          </div>
+        </label>
+
+        <p id="fetchStatus" class="status-text"></p>
+
+        <label>
+          Meaning
+          <textarea id="meaningInput" rows="4"></textarea>
+        </label>
+        <label>
+          Definition
+          <textarea id="definitionInput" rows="4"></textarea>
+        </label>
+        <label>
+          Sentence from book
+          <textarea id="sentenceInput" rows="3"></textarea>
+        </label>
+        <label>
+          Book title
+          <input id="bookInput" type="text" />
+        </label>
+
+        <div class="dialog-actions">
+          <button id="cancelAddButton" class="ghost-button" type="button">Cancel</button>
+          <button id="saveAnotherButton" class="ghost-button" type="button">Save + another</button>
+          <button id="saveButton" class="primary-button" type="submit">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
